@@ -55,12 +55,10 @@ func (p *Parser) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (p *Parser) Run(fileNames map[string]string, isDone chan bool) error {
+func (p *Parser) Run(ctx context.Context, fileNames map[string]string, isDone chan bool) error {
 	defer func() { isDone <- true }()
 
 	var errRun error
-
-	ctx := context.Background()
 
 	var wg sync.WaitGroup
 	wg.Add(len(fileNames))
