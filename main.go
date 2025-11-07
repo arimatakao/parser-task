@@ -10,12 +10,7 @@ import (
 	"github.com/arimatakao/parser-task/parser"
 )
 
-func gracefulShutdown(ctx context.Context, p *parser.Parser) {
-	// Listen for the interrupt signal.
-	<-ctx.Done()
-
-	fmt.Println("shutdown triggered")
-
+func gracefulShutdown(p *parser.Parser) {
 	// The context is used to inform the parser it has 4 seconds to finish
 	// the parsing process it is currently handling
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
@@ -35,7 +30,6 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	go gracefulShutdown(ctx, app)
 
 	err := app.Run(ctx, fileNames, isEndParsing)
 	if err != nil {
@@ -43,6 +37,10 @@ func main() {
 		return
 	}
 
-	<-isEndParsing
-	fmt.Println("parsing finished successfully")
+	select {
+	case <-ctx.Done():
+		gracefulShutdown(app)
+	case <-isEndParsing:
+		fmt.Println("parsing finished successfully")
+	}
 }
