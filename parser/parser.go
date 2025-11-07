@@ -17,7 +17,7 @@ type Message struct {
 }
 
 type Parser struct {
-	fr      filereader.FileReaderer
+	fr      filereader.FileReaderFactoryer
 	print   printer.Printerer
 	process processor.Processorer
 	fw      filewriter.FileWriterer
@@ -64,7 +64,7 @@ func (p *Parser) Run(ctx context.Context, fileNames map[string]string, isDone ch
 	wg.Add(len(fileNames))
 	for inFileName, outFileName := range fileNames {
 
-		inChan, errRead := p.fr.ReadToChan(ctx, inFileName)
+		inChan, errRead := p.fr.Create(ctx).ReadToChan(inFileName)
 		parsedJsonChan, errParsing := p.process.ProcessWithDelay(ctx, inChan)
 		outContent := p.print.Print(parsedJsonChan)
 		toFile := make(chan string)
