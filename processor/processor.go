@@ -42,6 +42,7 @@ func (f *ProcessorFactory) Close(ctx context.Context) error {
 
 func (f *ProcessorFactory) Create(ctx context.Context) *Processor {
 	newProcessor := &Processor{
+		ctx:           ctx,
 		parsedMsgChan: make(chan string),
 		errChan:       make(chan error),
 	}
@@ -51,6 +52,7 @@ func (f *ProcessorFactory) Create(ctx context.Context) *Processor {
 }
 
 type Processor struct {
+	ctx           context.Context
 	parsedMsgChan chan string
 	errChan       chan error
 	isClose       bool
