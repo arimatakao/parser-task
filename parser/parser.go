@@ -65,10 +65,10 @@ func (p *Parser) Run(ctx context.Context, fileNames map[string]string, isDone ch
 	for inFileName, outFileName := range fileNames {
 
 		inChan, errRead := p.fr.Create(ctx).ReadToChan(inFileName)
-		parsedJsonChan, errParsing := p.process.Create(ctx).ProcessWithDelay(ctx, inChan)
+		parsedJsonChan, errParsing := p.process.Create(ctx).ProcessWithDelay(inChan)
 		outContent := p.print.Create(ctx).Print(parsedJsonChan)
 		toFile := make(chan string)
-		writingStatus, errSaving := p.fw.Create(ctx).WriteToFile(ctx, toFile, outFileName)
+		writingStatus, errSaving := p.fw.Create(ctx).WriteToFile(toFile, outFileName)
 
 		go func() {
 			isClosed := false

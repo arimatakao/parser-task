@@ -13,7 +13,7 @@ type Message struct {
 }
 
 type Processorer interface {
-	ProcessWithDelay(ctx context.Context, source <-chan string) (<-chan string, <-chan error)
+	ProcessWithDelay(source <-chan string) (<-chan string, <-chan error)
 	Close(ctx context.Context) error
 }
 
@@ -67,12 +67,12 @@ func (p *Processor) Close(ctx context.Context) error {
 	return nil
 }
 
-func (p *Processor) ProcessWithDelay(ctx context.Context, source <-chan string) (<-chan string, <-chan error) {
+func (p *Processor) ProcessWithDelay(source <-chan string) (<-chan string, <-chan error) {
 
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-p.ctx.Done():
 				return
 			case line, ok := <-source:
 				if !ok {

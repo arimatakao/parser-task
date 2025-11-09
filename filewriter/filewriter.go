@@ -7,7 +7,7 @@ import (
 )
 
 type FileWriterer interface {
-	WriteToFile(ctx context.Context, contentChan <-chan string, fileName string) (<-chan bool, <-chan error)
+	WriteToFile(contentChan <-chan string, fileName string) (<-chan bool, <-chan error)
 	Close(ctx context.Context) error
 }
 
@@ -51,21 +51,21 @@ type FileWriter struct {
 	isClose    bool
 }
 
-func (fw *FileWriter) WriteToFile(ctx context.Context, contentChan <-chan string, fileName string) (<-chan bool, <-chan error) {
+func (fw *FileWriter) WriteToFile(contentChan <-chan string, fileName string) (<-chan bool, <-chan error) {
 
 	go func() {
+		defer close(fw.statusChan)
+		defer close(fw.errChan)
 		file, err := os.Create(fileName)
 		if err != nil {
 			fw.errChan <- err
 		}
 		defer file.Close()
-		defer close(fw.statusChan)
-		defer close(fw.errChan)
 
 		w := bufio.NewWriter(file)
 		for {
 			select {
-			case <-ctx.Done():
+			case <-fw.ctx.Done():
 				w.Flush()
 				return
 			case chunk, ok := <-contentChan:
