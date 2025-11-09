@@ -20,7 +20,7 @@ type Parser struct {
 	fr      filereader.FileReaderFactoryer
 	process processor.ProcessorFactoryer
 	print   printer.PrinterFactoryer
-	fw      filewriter.FileWriterer
+	fw      filewriter.FileWriterFactoryer
 }
 
 func New() *Parser {
@@ -68,7 +68,7 @@ func (p *Parser) Run(ctx context.Context, fileNames map[string]string, isDone ch
 		parsedJsonChan, errParsing := p.process.Create(ctx).ProcessWithDelay(ctx, inChan)
 		outContent := p.print.Create(ctx).Print(parsedJsonChan)
 		toFile := make(chan string)
-		writingStatus, errSaving := p.fw.WriteToFile(ctx, toFile, outFileName)
+		writingStatus, errSaving := p.fw.Create(ctx).WriteToFile(ctx, toFile, outFileName)
 
 		go func() {
 			isClosed := false
