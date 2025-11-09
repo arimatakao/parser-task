@@ -17,43 +17,79 @@ type Processorer interface {
 	Close(ctx context.Context) error
 }
 
-type Processor struct {
+type ProcessorFactoryer interface {
+	Create(ctx context.Context) *Processor
+	Close(ctx context.Context) error
 }
 
-func New() *Processor {
-	return &Processor{}
+type ProcessorFactory struct {
+	processors []*Processor
+}
+
+func New() *ProcessorFactory {
+	return &ProcessorFactory{}
+}
+
+func (f *ProcessorFactory) Close(ctx context.Context) error {
+	for _, processor := range f.processors {
+		err := processor.Close(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (f *ProcessorFactory) Create(ctx context.Context) *Processor {
+	newProcessor := &Processor{
+		parsedMsgChan: make(chan string),
+		errChan:       make(chan error),
+	}
+
+	f.processors = append(f.processors, newProcessor)
+	return newProcessor
+}
+
+type Processor struct {
+	parsedMsgChan chan string
+	errChan       chan error
+	isClose       bool
 }
 
 func (p *Processor) Close(ctx context.Context) error {
+	if !p.isClose {
+		close(p.parsedMsgChan)
+		close(p.errChan)
+		p.isClose = true
+	}
 	return nil
 }
 
 func (p *Processor) ProcessWithDelay(ctx context.Context, source <-chan string) (<-chan string, <-chan error) {
-	parsedMsgChan := make(chan string)
-	errChan := make(chan error)
 
 	go func() {
-		defer close(parsedMsgChan)
-		defer close(errChan)
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case line, ok := <-source:
 				if !ok {
+					p.isClose = true
+					close(p.parsedMsgChan)
+					close(p.errChan)
 					return
 				}
 
 				message := &Message{}
 				err := json.Unmarshal([]byte(line), message)
 				if err != nil {
-					errChan <- err
+					p.errChan <- err
 					return
 				}
 				time.Sleep(time.Duration(rand.Intn(5) * int(time.Second)))
-				parsedMsgChan <- "[" + message.Timestamp.Format(time.DateTime) + "]: " + message.Msg
+				p.parsedMsgChan <- "[" + message.Timestamp.Format(time.DateTime) + "]: " + message.Msg
 			}
 		}
 	}()
-	return parsedMsgChan, errChan
+	return p.parsedMsgChan, p.errChan
 }

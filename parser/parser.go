@@ -18,16 +18,16 @@ type Message struct {
 
 type Parser struct {
 	fr      filereader.FileReaderFactoryer
+	process processor.ProcessorFactoryer
 	print   printer.Printerer
-	process processor.Processorer
 	fw      filewriter.FileWriterer
 }
 
 func New() *Parser {
 	return &Parser{
 		fr:      filereader.New(),
-		print:   printer.New(),
 		process: processor.New(),
+		print:   printer.New(),
 		fw:      filewriter.New(),
 	}
 }
@@ -65,7 +65,7 @@ func (p *Parser) Run(ctx context.Context, fileNames map[string]string, isDone ch
 	for inFileName, outFileName := range fileNames {
 
 		inChan, errRead := p.fr.Create(ctx).ReadToChan(inFileName)
-		parsedJsonChan, errParsing := p.process.ProcessWithDelay(ctx, inChan)
+		parsedJsonChan, errParsing := p.process.Create(ctx).ProcessWithDelay(ctx, inChan)
 		outContent := p.print.Print(parsedJsonChan)
 		toFile := make(chan string)
 		writingStatus, errSaving := p.fw.WriteToFile(ctx, toFile, outFileName)
